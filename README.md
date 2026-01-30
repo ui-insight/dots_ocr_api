@@ -1,8 +1,6 @@
 # dots_ocr_api
 This is a gateway for the dots.OCR model.  Preprocesses PDFs into images and submits to backend dots.OCR endpoint in a concurrent and resilient way
 
-Here’s a **ready-to-use README** **customized for your actual repo at** [https://github.com/ui-insight/dots_ocr_api](https://github.com/ui-insight/dots_ocr_api): ([GitHub][1])
-
 ---
 
 # dots_ocr_api
