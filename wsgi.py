@@ -2,7 +2,7 @@
 wsgi.py imports and starts our entire app
 """
 # Path to the virtual env associated with this app
-python_home = '/html/dots_ocr_balancer/venv/'
+python_home = '/html/dots_ocr_api/venv/'
 
 import sys
 import site
