@@ -15,6 +15,7 @@ import io
 import os
 import re
 import time
+import json
 import base64
 import threading
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -37,7 +38,7 @@ MODEL_NAME = os.getenv(
     "/zdata/data/src/dots.ocr/weights/DotsOCR"
 )
 
-DEFAULT_DPI = int(os.getenv("OCR_DPI", "100"))
+DEFAULT_DPI = int(os.getenv("OCR_DPI", "200"))
 DEFAULT_TIMEOUT = int(os.getenv("OCR_TIMEOUT", "900"))
 DEFAULT_PAGE_WORKERS = int(os.getenv("OCR_PAGE_WORKERS", "8"))
 
@@ -117,13 +118,54 @@ def strip_html_tables(text):
 
     return text.strip()
 
+
+
+def replace_bbox_json_with_text(text):
+    if not text:
+        return text
+
+    def repl(match):
+        blob = match.group(0)
+        try:
+            data = json.loads(blob)
+            if isinstance(data, list):
+                parts = []
+                for item in data:
+                    if isinstance(item, dict) and "text" in item:
+                        parts.append(item["text"].strip())
+                return "\n".join(parts)
+        except Exception:
+            pass
+
+        # If parsing fails, fall back to removing the block
+        return ""
+
+    # Replace JSON arrays that look like bbox outputs
+    pattern = r"\[\s*\{.*?\"bbox\".*?\}\s*\]"
+    return re.sub(pattern, repl, text, flags=re.S)
+
+
+#PRIMARY_OCR_PROMPT = (
+#    "Extract all readable text from the image.\n"
+#    "Preserve line breaks and reading order.\n"
+#    "If the image contains tables, output rows as plain text.\n"
+#    "Do not include HTML.\n"
+#    "Output Markdown-compatible plain text."
+#)
+
+
 PRIMARY_OCR_PROMPT = (
+    "You are an OCR system.\n"
+    "Your output must be human-readable Markdown only.\n"
+    "Never return JSON or structured objects.\n\n"
     "Extract all readable text from the image.\n"
-    "Preserve line breaks and reading order.\n"
-    "If the image contains tables, output rows as plain text.\n"
-    "Do not include HTML.\n"
-    "Output Markdown-compatible plain text."
+    "Preserve natural reading order and line breaks.\n"
+    "If the image contains tables, render them as Markdown tables.\n"
+    "Return ONLY Markdown."
 )
+
+
+
 
 
 
@@ -176,7 +218,11 @@ def run_inference(img, session, timeout, params):
         duration = time.time() - start
 
         dbg(f"Aspen returned {len(text)} chars in {duration:.2f}s")
-        return strip_html_tables(text), duration
+
+        #return strip_html_tables(text), duration
+        cleaned = replace_bbox_json_with_text(strip_html_tables(text))
+        return cleaned, duration
+
 
 # ============================================================
 # PAGE OCR
