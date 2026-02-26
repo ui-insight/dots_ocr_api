@@ -24,19 +24,27 @@ import fitz  # PyMuPDF
 import requests
 from PIL import Image
 from flask import Flask, request, Response, jsonify
+from dotenv import load_dotenv
+
+# Load variables from .env file if it exists
+load_dotenv()
 
 # ============================================================
 # CONFIG
 # ============================================================
 BACKEND_ENDPOINT = os.getenv(
     "BACKEND_ENDPOINT",
-    "http://aspen1.hpc.uidaho.edu"
+#    "http://aspen1.hpc.uidaho.edu:80"
+    "https://mindrouter.nkn.uidaho.edu"
 )
 
 MODEL_NAME = os.getenv(
     "BACKEND_MODEL",
-    "/zdata/data/src/dots.ocr/weights/DotsOCR"
+    "dots.OCR"
 )
+
+# Added API Token retrieval
+BACKEND_API_KEY = os.getenv("BACKEND_API_KEY", "")
 
 DEFAULT_DPI = int(os.getenv("OCR_DPI", "200"))
 DEFAULT_TIMEOUT = int(os.getenv("OCR_TIMEOUT", "900"))
@@ -198,6 +206,12 @@ def run_inference(img, session, timeout, params):
             "top_p": params["top_p"],
             "max_completion_tokens": 8192
         }
+
+
+        # Add Authorization header if key is provided
+        headers = {}
+        if BACKEND_API_KEY:
+            headers["Authorization"] = f"Bearer {BACKEND_API_KEY}"
 
         dbg(
             f"POST → {BACKEND_ENDPOINT}/v1/chat/completions "
